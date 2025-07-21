@@ -1,0 +1,5 @@
+---
+description: The aim of this project is to create self-evolving agents - Agents that create, evolve and use their own skills to solve complex problems. The relevant directory is agent-sdk (indicating that the aim is reached by using the OpenAI Agent SDK. The archived directory is not of importance unless specifically asked.) Project structure: main.py is always the main entry point, so that the program can be easily run. uv replaces pip syntax. The "skills" directory contains the skills that the agents can use. It is modified at runtime. 
+name: General Project Information
+alwaysApply: false
+---
