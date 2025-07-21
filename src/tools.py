@@ -4,7 +4,23 @@ from pathlib import Path
 from agents import function_tool
 
 # Base directory for skills
-SKILLS_DIR = Path(__file__).parent / "skills"
+ROOT_DIR = Path(__file__).parent / "skills"
+
+@function_tool
+def create_folder(foldername: str) -> str:
+    print("TOOL CALLED: create_folder", foldername)
+    """Create a new folder in the skills directory.
+    
+    Args:
+        foldername: Name of the folder to create
+    """
+    try:
+        ROOT_DIR.mkdir(exist_ok=True)
+        folder_path = ROOT_DIR / foldername
+        folder_path.mkdir(exist_ok=True)
+        return f"Successfully created folder '{foldername}'"
+    except Exception as e:
+        return f"Error creating folder: {str(e)}"
 
 @function_tool
 def create_file(filename: str, content: str = "") -> str:
@@ -20,9 +36,9 @@ def create_file(filename: str, content: str = "") -> str:
     """
     try:
         # Ensure skills directory exists
-        SKILLS_DIR.mkdir(exist_ok=True)
+        ROOT_DIR.mkdir(exist_ok=True)
         
-        file_path = SKILLS_DIR / filename
+        file_path = ROOT_DIR / filename
         
         # Check if file already exists
         if file_path.exists():
@@ -48,7 +64,7 @@ def edit_file(filename: str, content: str) -> str:
         Success message or error description
     """
     try:
-        file_path = SKILLS_DIR / filename
+        file_path = ROOT_DIR / filename
         
         # Check if file exists
         if not file_path.exists():
@@ -62,49 +78,93 @@ def edit_file(filename: str, content: str) -> str:
         return f"Error editing file: {str(e)}"
 
 @function_tool
-def list_files() -> str:
-    print("TOOL CALLED: list_files")
-    """List all files in the skills directory.
+def list_files(path: str = "") -> str:
+    print("TOOL CALLED: list_files", path)
+    """List all files and directories in the specified path within the skills directory.
+    
+    Args:
+        path: Relative path within the skills directory (optional, defaults to root skills directory)
     
     Returns:
-        List of files or error description
+        List of files and directories or error description
     """
     try:
         # Ensure skills directory exists
-        if not SKILLS_DIR.exists():
-            return "Skills directory does not exist"
+        ROOT_DIR.mkdir(exist_ok=True)
         
-        # Get all files (not directories)
-        files = [f.name for f in SKILLS_DIR.iterdir() if f.is_file()]
+        # Determine target path
+        if path:
+            target_path = ROOT_DIR / path
+        else:
+            target_path = ROOT_DIR
         
-        if not files:
-            return "No files found in skills directory"
+        if not target_path.exists():
+            return f"Error: Path '{path}' does not exist"
         
-        return "\n".join(sorted(files))
+        # Get all files and directories
+        items = []
+        for item in target_path.iterdir():
+            if item.is_dir():
+                items.append(f"[DIR] {item.name}/")
+            else:
+                items.append(f"[FILE] {item.name}")
+        
+        if not items:
+            return "No files or directories found"
+        
+        return "\n".join(sorted(items))
         
     except Exception as e:
         return f"Error listing files: {str(e)}"
 
 @function_tool
-def execute_skill(skill_filename: str, arguments: str = "") -> str:
-    print("TOOL CALLED: execute_skill", skill_filename, arguments)
-    """Execute a skill from the skills directory with optional arguments.
+def read_file(filepath: str) -> str:
+    print("TOOL CALLED: read_file", filepath)
+    """Read the contents of a file within the skills directory.
     
     Args:
-        skill_filename: Name of the skill file to execute
-        arguments: Arguments to pass to the skill (optional)
+        filepath: Relative path to the file within the skills directory (e.g., 'add/v0.py' or 'power/history.txt')
     
     Returns:
-        Output from the executed skill or error description
+        File contents or error description
     """
     try:
-        skill_path = SKILLS_DIR / skill_filename
+        file_path = ROOT_DIR / filepath
         
-        if not skill_path.exists():
-            return f"Error: Skill '{skill_filename}' does not exist"
+        if not file_path.exists():
+            return f"Error: File '{filepath}' does not exist"
         
-        # Build command to execute the skill
-        cmd = ["python", str(skill_path)]
+        if not file_path.is_file():
+            return f"Error: '{filepath}' is not a file"
+        
+        return file_path.read_text(encoding='utf-8')
+        
+    except Exception as e:
+        return f"Error reading file: {str(e)}"
+
+@function_tool
+def execute_file(filepath: str, arguments: str = "") -> str:
+    print("TOOL CALLED: execute_file", filepath, arguments)
+    """Execute a Python file from the skills directory with optional arguments.
+    
+    Args:
+        filepath: Relative path to the Python file within the skills directory
+        arguments: Arguments to pass to the file (optional)
+    
+    Returns:
+        Output from the executed file or error description
+    """
+    try:
+        file_path = ROOT_DIR / filepath
+        
+        if not file_path.exists():
+            return f"Error: File '{filepath}' does not exist"
+        
+        if not file_path.is_file():
+            return f"Error: '{filepath}' is not a file"
+        
+        # Build command to execute the file
+        cmd = ["python", str(file_path)]
         if arguments.strip():
             cmd.extend(arguments.split())
         
@@ -116,11 +176,12 @@ def execute_skill(skill_filename: str, arguments: str = "") -> str:
         )
         
         if result.returncode == 0:
-            return result.stdout if result.stdout else "Skill executed successfully (no output)"
+            return result.stdout if result.stdout else "File executed successfully (no output)"
         else:
             return f"Error: {result.stderr}"
             
     except subprocess.TimeoutExpired:
-        return "Error: Skill execution timed out (30 seconds)"
+        return "Error: File execution timed out (30 seconds)"
     except Exception as e:
-        return f"Error executing skill: {str(e)}"
+        return f"Error executing file: {str(e)}"
+
