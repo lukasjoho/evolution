@@ -1,1 +1,0 @@
-v0: Created initial function to handle power related questions.

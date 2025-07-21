@@ -14,6 +14,3 @@ def calculate_power(base, exponent):
     calculate_power(2, 10) # Returns 1024
     """
     return base ** exponent
-
-result = calculate_power(4, 13)
-print(f"4 to the power of 13 is {result}")
